@@ -146,6 +146,27 @@ public class DatabaseManager {
         }
         return messages;
     }
+    public void deleteMessage(int messageId) {
+        String query = "DELETE FROM messages WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, messageId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error deleting message: " + e.getMessage());
+        }
+    }
+
+    public void markMessageAsRead(int messageId) {
+        String query = "UPDATE messages SET isRead = 1 WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, messageId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error marking message as read: " + e.getMessage());
+        }
+    }
 
 
 }
