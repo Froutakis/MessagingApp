@@ -1,7 +1,10 @@
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:nexus.db";
+    
 
     public DatabaseManager() {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
@@ -40,6 +43,8 @@ public class DatabaseManager {
         }
     }
 
+    
+
     public int createAccount(String username) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             if (isUsernameTaken(username)) {
@@ -70,6 +75,7 @@ public class DatabaseManager {
         }
     }
 
+
     public void printAccounts(Connection conn) throws SQLException {
     String query = "SELECT username FROM accounts";
     try (Statement stmt = conn.createStatement();
@@ -87,6 +93,60 @@ public class DatabaseManager {
         System.out.println("-------------------------------");
     }
 }
+    public java.util.Map<String, Integer> getAllAccountsRaw() throws SQLException {
+    java.util.Map<String, Integer> data = new java.util.HashMap<>();
+    String query = "SELECT username, authToken FROM accounts";
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(query)) {
+        while (rs.next()) {
+            data.put(rs.getString("username"), rs.getInt("authToken"));
+        }
+    }
+    return data;
+}
+
+    public int createMessage(String sender, String recipient, String body) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String insert = "INSERT INTO messages(sender, recipient, body) VALUES(?, ?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS)) {
+                pstmt.setString(1, sender);
+                pstmt.setString(2, recipient);
+                pstmt.setString(3, body);
+                pstmt.executeUpdate();
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1); 
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error creating message: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    public List<Message> getMessagesForUser(String username) {
+        List<Message> messages = new ArrayList<>();
+        String query = "SELECT id, sender, recipient, body, timestamp, isRead FROM messages WHERE recipient = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Message msg = new Message(
+                        rs.getInt("id"),
+                        rs.getString("sender"),
+                        rs.getString("recipient"),
+                        rs.getString("body")
+                );
+                messages.add(msg);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error retrieving messages: " + e.getMessage());
+        }
+        return messages;
+    }
+
 
 }
 
