@@ -117,6 +117,7 @@ public class Server {
             Account newAcc = new Account(username, newToken);
             accounts.put(username, newAcc);
             tokens.put(newToken, newAcc);
+            db.createAccount(username);
 
             return new Response(String.valueOf(newToken));
         }
