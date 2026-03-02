@@ -12,7 +12,6 @@ public class DatabaseManager {
             if (conn != null) {
                 createTables(conn);
                 System.out.println("--- Loading Database: nexus.db ---");
-                printAccounts(conn);
             }
 
         } catch (SQLException e) {
@@ -45,13 +44,12 @@ public class DatabaseManager {
 
     
 
-    public int createAccount(String username) {
+    public int createAccount(String username, int authToken) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             if (isUsernameTaken(username)) {
                 return -1; 
             }
 
-            int authToken = (int) (Math.random() * 1000000);
             String insert = "INSERT INTO accounts(username, authToken) VALUES(?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(insert)) {
                 pstmt.setString(1, username);
@@ -76,23 +74,24 @@ public class DatabaseManager {
     }
 
 
-    public void printAccounts(Connection conn) throws SQLException {
-    String query = "SELECT username FROM accounts";
-    try (Statement stmt = conn.createStatement();
-         ResultSet rs = stmt.executeQuery(query)) {
-        
-        System.out.println("--- Database Initialization ---");
-        boolean found = false;
-        while (rs.next()) {
-            System.out.println("Existing User: " + rs.getString("username"));
-            found = true;
+    public void printAccounts() throws SQLException {
+        Connection conn = DriverManager.getConnection(DB_URL);
+        String query = "SELECT username, authToken FROM accounts";
+        try (Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query)) {
+            
+            System.out.println("--- Database Initialization ---");
+            boolean found = false;
+            while (rs.next()) {
+                System.out.println("Existing User: " + rs.getString("username") + " (authToken: " + rs.getInt("authToken") + ")");
+                found = true;
+            }
+            if (!found) {
+                System.out.println("Database is currently empty.");
+            }
+            System.out.println("-------------------------------");
         }
-        if (!found) {
-            System.out.println("Database is currently empty.");
-        }
-        System.out.println("-------------------------------");
     }
-}
     public java.util.Map<String, Integer> getAllAccountsRaw() throws SQLException {
     java.util.Map<String, Integer> data = new java.util.HashMap<>();
     String query = "SELECT username, authToken FROM accounts";

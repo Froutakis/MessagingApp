@@ -46,6 +46,11 @@ public class Client {
                     req.authToken = Integer.parseInt(args[3]);
                     req.messageId = Integer.parseInt(args[4]);
                     break;
+                case 7:
+                    if (args.length < 5) throw new IllegalArgumentException();
+                    req.authToken = Integer.parseInt(args[3]);
+                    req.username = args[4];
+                    break;
 
                 default:
                     System.out.println("Invalid Function ID");

@@ -28,10 +28,16 @@ public class Server {
             return;
         }
         int port = Integer.parseInt(args[0]);
-
+        
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
             initializeServer();
+
+            try {
+                db.printAccounts();
+            } catch (SQLException e) {
+                System.out.println("Error printing accounts: " + e.getMessage());
+            }
             
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -40,6 +46,8 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+       
+        
     }
 
     private static void initializeServer() {
@@ -52,7 +60,7 @@ public class Server {
                 Account acc = new Account(username, authToken);
                 accounts.put(username, acc);
                 tokens.put(authToken, acc);
-
+                
                 List<Message> existingMessages = db.getMessagesForUser(username);
                 acc.messageList.addAll(existingMessages);
 
@@ -115,6 +123,8 @@ public class Server {
                         return readMessage(user, req.messageId);
                     case 6:
                         return deleteMessage(user, req.messageId);
+                    case 7:
+                        return login(req.username, req.authToken);
                     default:
                         return new Response("Unknown Function ID");
                 }
@@ -144,9 +154,20 @@ public class Server {
             Account newAcc = new Account(username, newToken);
             accounts.put(username, newAcc);
             tokens.put(newToken, newAcc);
-            db.createAccount(username);
+            db.createAccount(username, newToken);
 
             return new Response(String.valueOf(newToken));
+        }
+
+        private Response login(String username, int authToken) {
+            Account acc = accounts.get(username);
+            if (acc == null) {
+                return new Response("User does not exist");
+            }
+            if (acc.authToken != authToken) {
+                return new Response("Invalid Auth Token");
+            }
+            return new Response("User " + username + " logged in successfully");
         }
 
         private Response showAccounts() {
@@ -190,6 +211,7 @@ public class Server {
             for (Message msg : user.messageList) {
                 if (msg.id == msgId) {
                     msg.isRead = true;
+                    db.markMessageAsRead(msgId);
                     return new Response("(" + msg.sender + ") " + msg.mes);
                 }
             }

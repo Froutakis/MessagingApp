@@ -9,4 +9,9 @@ class Request implements Serializable {
     int messageId;
 
     public Request() {}
+    
+    public Request(int fnId, String username){
+        this.fnId = fnId;
+        this.username = username;
+    }
 }

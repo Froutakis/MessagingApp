@@ -1,0 +1,11 @@
+{
+    "java.project.referencedLibraries": {
+        "include": [
+            "lib/**/*.jar",
+            "c:\\Users\\User\\Downloads\\sqlite-jdbc-3.51.2.0.jar"
+        ],
+        "exclude": [
+            "c:\\Users\\User\\Downloads\\sqlite-jdbc-3.51.2.0-javadoc.jar"
+        ]
+    }
+}
