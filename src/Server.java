@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +31,7 @@ public class Server {
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
+            initializeServer();
             
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -39,6 +41,31 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    private static void initializeServer() {
+        try {
+            Map<String, Integer> existingAccounts = db.getAllAccountsRaw();
+            
+            for (Map.Entry<String, Integer> entry : existingAccounts.entrySet()) {
+                String username = entry.getKey();
+                int authToken = entry.getValue();
+                Account acc = new Account(username, authToken);
+                accounts.put(username, acc);
+                tokens.put(authToken, acc);
+
+                List<Message> existingMessages = db.getMessagesForUser(username);
+                acc.messageList.addAll(existingMessages);
+
+                for (Message msg : existingMessages) {
+                    if (msg.id >= messageIdCounter.get()) {
+                        messageIdCounter.set(msg.id + 1);
+                    }
+                }
+            }
+        } catch (SQLException e) { 
+            System.out.println("Error initializing server: " + e.getMessage());
+        }       
+} 
 
     private static class ClientHandler extends Thread {
         private Socket socket;
@@ -137,12 +164,15 @@ public class Server {
             if (recipient == null) {
                 return new Response("User does not exist");
             }
+            
+            int msgId = db.createMessage(sender.username, recipientUsername, body);
 
-            int msgId = messageIdCounter.incrementAndGet();
-            Message msg = new Message(msgId, sender.username, recipient.username, body);
-            recipient.messageList.add(msg);
-
-            return new Response("OK");
+            if (msgId != -1) {
+                Message msg = new Message(msgId, sender.username, recipient.username, body);
+                recipient.messageList.add(msg);
+                return new Response("Message sent successfully");
+            } 
+            else { return new Response("Failed to send message"); }
         }
 
         private Response showInbox(Account user) {
@@ -172,6 +202,7 @@ public class Server {
                 Message msg = iterator.next();
                 if (msg.id == msgId) {
                     iterator.remove();
+                    db.deleteMessage(msgId);
                     return new Response("OK");
                 }
             }
