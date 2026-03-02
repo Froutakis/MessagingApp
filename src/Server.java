@@ -3,6 +3,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -10,11 +11,15 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server {
+
+    
+
     private static final Map<String, Account> accounts = new HashMap<>();
     private static final Map<Integer, Account> tokens = new HashMap<>();
-
-    private static final AtomicInteger tokenCounter = new AtomicInteger(1000);
     private static final AtomicInteger messageIdCounter = new AtomicInteger(1);
+    private static final DatabaseManager db = new DatabaseManager();
+    
+    
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -25,7 +30,7 @@ public class Server {
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
-
+            
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 new ClientHandler(clientSocket).start();
@@ -93,8 +98,13 @@ public class Server {
             if (!username.matches("^[a-zA-Z0-9_]+$")) {
                 return new Response("Invalid Username");
             }
-            if (accounts.containsKey(username)) {
-                return new Response("Sorry, the user already exists");
+            try {
+                if (db.isUsernameTaken(username)) {
+                    return new Response("Sorry, the user already exists");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();               
+                return new Response("Database error");
             }
 
             Random rand = new Random();
